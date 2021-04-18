@@ -114,6 +114,30 @@ object snippets {
       case _          => None
     }).append(Stream.empty)
 
+    /**
+      * This implementation will not utilize the laziness of foldRight because the function passed to foldRight will
+      * always evaluate both of its parameters. Therefore this implementation is strict and not lazy.
+      */
+    def scanRightNonLazy[B](z: => B)(f: (A, => B) => B): Stream[B] =
+      foldRight((Stream(z), z)){ case (a, (bs, b)) =>
+        val newB = f(a, b)
+        cons(newB, bs) -> newB
+      }._1
+
+    def scanRight[B](z: B)(f: (A, => B) => B): Stream[B] =
+      foldRight((Stream(z), z))((a, acc) => {
+        lazy val acc1 = acc
+        val newB = f(a, acc1._2)
+        (cons(newB, acc1._1), newB)
+      })._1
+
+    def scanRightWhyNotLazy[B](z: B)(f: (A, => B) => B): Stream[B] =
+      foldRight((Stream(z), z)) { case (a, acc) => {
+        lazy val acc1 = acc
+        val newB = f(a, acc1._2)
+        (cons(newB, acc1._1), newB)
+      }}._1
+
   }
 
   case object Empty extends Stream[Nothing]
