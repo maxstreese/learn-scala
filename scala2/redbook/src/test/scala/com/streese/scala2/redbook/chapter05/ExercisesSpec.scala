@@ -252,19 +252,25 @@ class ExercisesSpec extends AnyFreeSpec with Matchers {
     ones.tails.take(3).toList.map(_.take(1).toList).flatten shouldBe List(1,1,1)
   }
 
-  "5.16 scanRight" in {
-    s0.scanRight(0)(_ + _).toList shouldBe List(0)
-    s1.scanRight(0)(_ + _).toList shouldBe List(1,0)
-    s2.scanRight(0)(_ + _).toList shouldBe List(3,2,0)
-    s3.scanRight(0)(_ + _).toList shouldBe List(6,5,3,0)
-  }
+  "5.16 scanRight" - {
 
-  "5.16 scanRight lazy" in {
-    from(0).scanRight(0)((a, acc) => if (a < 10) a + acc else a).take(10).toList
-  }
+    "implementation" in {
+      s0.scanRight(0)(_ + _).toList shouldBe List(0)
+      s1.scanRight(0)(_ + _).toList shouldBe List(1,0)
+      s2.scanRight(0)(_ + _).toList shouldBe List(3,2,0)
+      s3.scanRight(0)(_ + _).toList shouldBe List(6,5,3,0)
+    }
 
-  "5.16 scanRight why not lazy?" in {
-    from(0).scanRightWhyNotLazy(0)((a, acc) => if (a < 10) a + acc else a).take(10).toList
+    "lazy" in {
+      from(0).scanRight(0)((a, acc) => if (a < 10) a + acc else a).take(10).toList
+    }
+
+    "not lazy due to usage of case" in {
+      assertThrows[StackOverflowError] {
+        from(0).scanRightNotLazyBecauseOfCase(0)((a, acc) => if (a < 10) a + acc else a).take(10).toList
+      }
+    }
+
   }
 
 }

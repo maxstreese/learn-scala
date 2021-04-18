@@ -13,7 +13,7 @@ object snippets {
       case _          => None
     }
 
-    def headOptionViaFoldRight: Option[A] = foldRight(None: Option[A])((a, acc) => Some(a))
+    def headOptionViaFoldRight: Option[A] = foldRight(None: Option[A])((a, _) => Some(a))
 
     def toListRecursive: List[A] = this match {
       case Cons(h, t) => h() :: t().toList
@@ -41,8 +41,8 @@ object snippets {
     }
 
     def takeWhile(p: A => Boolean): Stream[A] = this match {
-      case Cons(h, t) => if (p(h())) cons(h(), t().takeWhile(p)) else empty
-      case _          => empty
+      case Cons(h, t) if (p(h())) => cons(h(), t().takeWhile(p))
+      case _                      => empty
     }
 
     def takeWhileViaFoldRight(p: A => Boolean): Stream[A] =
@@ -67,42 +67,66 @@ object snippets {
 
     def find(p: A => Boolean): Option[A] = filter(p).headOption
 
-    def mapViaUnfold[B](f: A => B): Stream[B] = unfold(this)( _ match {
+    def mapViaUnfold[B](f: A => B): Stream[B] = unfold(this) {
       case Cons(h, t) => Some((f(h()), t()))
       case _          => None
-    })
-
-    def takeViaUnfold(n: Int): Stream[A] = unfold(this)(_ match {
-      case Cons(h, t) => if (n < 1) None else Some((h(), t().takeViaUnfold(n-1)))
-      case _          => None
-    })
-
-    def takeWhileViaUnfold(p: A => Boolean): Stream[A] = unfold(this)(_ match {
-      case Cons(h, t) => if (p(h())) Some((h(), t().takeWhileViaUnfold(p))) else None
-      case _          => None
-    })
-
-    def zipWithViaUnfold[B >: A](that: Stream[B])(f: (B, B) => B): Stream[B] = unfold((this, that)) { case (s1, s2) =>
-      s1 match {
-        case Cons(h1, t1) => s2 match {
-          case Cons(h2, t2) => Some((f(h1(), h2())), (t1(), t2()))
-          case _            => None
-        }
-        case _ => None
-      }
     }
 
-    def zipAllViaUnfold[B](that: Stream[B]): Stream[(Option[A], Option[B])] = unfold((this, that)) { case (s1, s2) =>
-      s1 match {
-        case Cons(h1, t1) => s2 match {
-          case Cons(h2, t2) => Some((Some(h1()), Some(h2())), (t1(), t2()))
-          case _            => Some((Some(h1()), None), (t1(), empty))
+    def takeViaUnfold(n: Int): Stream[A] = unfold((this, n)) {
+      case (Cons(h, t), n) => if (n < 1) None else Some((h(), (t(), n-1)))
+      case _               => None
+    }
+
+    def takeViaUnfoldCheated(n: Int): Stream[A] = unfold(this) {
+      case Cons(h, t) => if (n < 1) None else Some((h(), t().takeViaUnfoldCheated(n-1)))
+      case _          => None
+    }
+
+    def takeWhileViaUnfold(p: A => Boolean): Stream[A] = unfold((this, p)) {
+      case (Cons(h, t), p) => if (p(h())) Some((h(), (t(), p))) else None
+      case _               => None
+    }
+
+    def takeWhileViaUnfoldCheated(p: A => Boolean): Stream[A] = unfold(this) {
+      case Cons(h, t) => if (p(h())) Some((h(), t().takeWhileViaUnfoldCheated(p))) else None
+      case _          => None
+    }
+
+    def zipWithViaUnfold[B >: A](that: Stream[B])(f: (B, B) => B): Stream[B] = unfold((this, that)) {
+      case (Cons(h1, t1), Cons(h2, t2)) => Some((f(h1(), h2())), (t1(), t2()))
+      case _                            => None
+    }
+
+    def zipWithViaUnfoldNotSmart[B >: A](that: Stream[B])(f: (B, B) => B): Stream[B] = unfold((this, that)) {
+      case (s1, s2) =>
+        s1 match {
+          case Cons(h1, t1) => s2 match {
+            case Cons(h2, t2) => Some((f(h1(), h2())), (t1(), t2()))
+            case _            => None
+          }
+          case _ => None
         }
-        case _ => s2 match {
-          case Cons(h2, t2) => Some((None, Some(h2())), (empty, t2()))
-          case _            => None
+    }
+
+    def zipAllViaUnfold[B](that: Stream[B]): Stream[(Option[A], Option[B])] = unfold((this, that)) {
+      case (Cons(h1, t1), Cons(h2, t2)) => Some((Some(h1()), Some(h2())), (t1(), t2()))
+      case (Cons(h1, t1), _           ) => Some((Some(h1()), None), (t1(), empty))
+      case (_           , Cons(h2, t2)) => Some((None, Some(h2())), (empty, t2()))
+      case (_           , _           ) => None
+    }
+
+    def zipAllViaUnfoldNested[B](that: Stream[B]): Stream[(Option[A], Option[B])] = unfold((this, that)) {
+      case (s1, s2) =>
+        s1 match {
+          case Cons(h1, t1) => s2 match {
+           case Cons(h2, t2) => Some((Some(h1()), Some(h2())), (t1(), t2()))
+           case _            => Some((Some(h1()), None), (t1(), empty))
+          }
+          case _ => s2 match {
+            case Cons(h2, t2) => Some((None, Some(h2())), (empty, t2()))
+            case _            => None
+          }
         }
-      }
     }
 
     def startsWith[A](s: Stream[A]): Boolean = zipAllViaUnfold(s).takeWhile(!_._2.isEmpty).forAll {
@@ -113,6 +137,8 @@ object snippets {
       case c: Cons[A] => Some(c, c.t())
       case _          => None
     }).append(Stream.empty)
+
+    def hasSubsequence[A](s: Stream[A]): Boolean = tails.exists(_ startsWith s)
 
     /**
       * This implementation will not utilize the laziness of foldRight because the function passed to foldRight will
@@ -131,7 +157,7 @@ object snippets {
         (cons(newB, acc1._1), newB)
       })._1
 
-    def scanRightWhyNotLazy[B](z: B)(f: (A, => B) => B): Stream[B] =
+    def scanRightNotLazyBecauseOfCase[B](z: B)(f: (A, => B) => B): Stream[B] =
       foldRight((Stream(z), z)) { case (a, acc) => {
         lazy val acc1 = acc
         val newB = f(a, acc1._2)
@@ -159,6 +185,11 @@ object snippets {
     def ones: Stream[Int] = cons(1, ones)
 
     def constant[A](a: A): Stream[A] = cons(a, constant(a))
+
+    def constantSmart[A](a: A): Stream[A] = {
+      lazy val tail: Stream[A] = Cons(() => a, () => tail)
+      tail
+    }
 
     def from(n: Int): Stream[Int] = cons(n, from(n+1))
 
