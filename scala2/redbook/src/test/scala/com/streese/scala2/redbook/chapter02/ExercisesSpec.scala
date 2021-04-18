@@ -67,15 +67,15 @@ class ExercisesSpec extends AnyFreeSpec with Matchers {
 
   }
 
-  "should compile" in {
+  "curry should compile" in {
     def curry[A, B, C](f: (A, B) => C): A => (B => C) = a => f(a, _)
   }
 
-  "should compile" in {
+  "uncurry should compile" in {
     def uncurry[A, B, C](f: A => B => C): (A, B) => C = (a, b) => f(a)(b)
   }
 
-  "should compile" in {
+  "compose should compile" in {
     def compose[A, B, C](f: B => C, g: A => B): A => C = a => f(g(a))
   }
 
