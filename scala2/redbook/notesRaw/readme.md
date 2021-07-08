@@ -21,3 +21,11 @@ Version: @VERSION@
 - Regarding exercise 3.7: I do not think that `foldRight` as implemented can halt the recursion and short circuit.
   This is due to the fact that such halting is not required in the structure of the fold which you cannot simply
   escape from within
+
+## Chapter 05
+
+- Strictness
+  - Definition
+    - If the evaluation of an expression runs forever or throws an error instead of returning a definite value, we say
+      that the expression does not terminate, or that it evaluates to bottom. A function f is strict if the expression
+      f(x) evaluates to bottom for all x that evaluate to bottom

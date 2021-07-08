@@ -5,7 +5,7 @@ ThisBuild / version      := "0.1.0-SNAPSHOT"
 lazy val redbook = (project in file("."))
   .settings(
     name                 := "code",
-    libraryDependencies ++= Seq(libScalaTest)
+    libraryDependencies ++= Seq(libScalaTest, libScalaTestPlusScalaCheck)
   )
 
 lazy val mdoc = (project in file("mdoc"))
@@ -18,6 +18,7 @@ lazy val mdoc = (project in file("mdoc"))
   .dependsOn(redbook)
   .enablePlugins(MdocPlugin)
 
-lazy val libScalaTest = "org.scalatest" %% "scalatest" % "3.2.6" % Test
+lazy val libScalaTest               = "org.scalatest"     %% "scalatest"       % "3.2.8"   % Test
+lazy val libScalaTestPlusScalaCheck = "org.scalatestplus" %% "scalacheck-1-15" % "3.2.8.0" % Test
 
 ThisBuild / scapegoatVersion := "1.4.8"
